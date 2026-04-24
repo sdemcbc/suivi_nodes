@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nodes Down Dashboard</title>
+  <meta name="description"
+    content="Dashboard de suivi des coupures site télécom — import Excel, filtres, KPI et export CSV." />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.mini.min.js"></script>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <span class="logo-dot"></span>
+      <h1>Nodes Down <span>Dashboard</span></h1>
+    </div>
+    <div class="header-right">
+      <span id="file-badge" class="file-badge hidden">—</span>
+    </div>
+  </header>
+
+  <!-- IMPORT ZONE -->
+  <section class="import-section" id="import-section">
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+      </div>
+      <p class="drop-title">Glissez votre fichier Excel ici</p>
+      <p class="drop-sub">ou</p>
+      <label class="btn-upload" for="file-input">Parcourir le fichier</label>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" hidden />
+      <p class="drop-hint">Formats acceptés : .xlsx · .xls · .csv</p>
+    </div>
+  </section>
+
+  <!-- KPI CARDS -->
+  <section class="kpi-section hidden" id="kpi-section">
+    <div class="kpi-card" id="kpi-total">
+      <span class="kpi-label">Total Nodes</span>
+      <span class="kpi-value" id="kpi-total-val">0</span>
+    </div>
+    <div class="kpi-card" id="kpi-filtered">
+      <span class="kpi-label">Nodes filtrés</span>
+      <span class="kpi-value" id="kpi-filtered-val">0</span>
+    </div>
+    <div class="kpi-card" id="kpi-duration">
+      <span class="kpi-label">Durée totale (filtrée)</span>
+      <span class="kpi-value" id="kpi-duration-val">—</span>
+    </div>
+    <div class="kpi-card" id="kpi-locations">
+      <span class="kpi-label">Locations uniques</span>
+      <span class="kpi-value" id="kpi-locations-val">0</span>
+    </div>
+  </section>
+
+  <!-- TECH DURATION KPI -->
+  <section class="tech-kpi-section hidden" id="tech-kpi-section">
+    <p class="tech-kpi-title">Durée totale par technologie</p>
+    <div class="tech-kpi-grid" id="tech-kpi-grid"></div>
+  </section>
+
+  <!-- FILTERS -->
+  <section class="filters-section hidden" id="filters-section">
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label class="filter-label">Location</label>
+        <select class="filter-input" id="filter-location">
+          <option value="">Toutes les locations</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Site ID</label>
+        <input type="text" class="filter-input" id="filter-site-id" placeholder="Rechercher un Site ID…" />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Site Name</label>
+        <input type="text" class="filter-input" id="filter-site-name" placeholder="Rechercher un Site Name…" />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Duration min <span class="filter-hint">(hh:mm)</span></label>
+        <input type="text" class="filter-input" id="filter-dur-min" placeholder="00:00" />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Duration max <span class="filter-hint">(hh:mm)</span></label>
+        <input type="text" class="filter-input" id="filter-dur-max" placeholder="99:59" />
+      </div>
+      <div class="filter-group filter-group--range">
+        <label class="filter-label">Plage de durée <span class="filter-hint" id="range-label">0 — 0 min</span></label>
+        <div class="range-track">
+          <input type="range" class="range-input" id="range-min" min="0" max="100" value="0" />
+          <input type="range" class="range-input" id="range-max" min="0" max="100" value="100" />
+          <div class="range-fill" id="range-fill"></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-reset" id="btn-reset">Réinitialiser les filtres</button>
+  </section>
+
+  <!-- TABLE -->
+  <section class="table-section hidden" id="table-section">
+    <div class="table-header-row">
+      <span class="results-count" id="results-count">0 résultat(s)</span>
+      <button class="btn-export" id="btn-export">⬇ Exporter CSV</button>
+    </div>
+    <div class="table-wrapper">
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th data-col="location">Location <span class="sort-icon">↕</span></th>
+            <th data-col="technology">Technologie <span class="sort-icon">↕</span></th>
+            <th data-col="site_id">Site ID <span class="sort-icon">↕</span></th>
+            <th data-col="site_name">Site Name <span class="sort-icon">↕</span></th>
+            <th data-col="duration">Duration <span class="sort-icon">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="no-results hidden" id="no-results">Aucun résultat ne correspond aux filtres.</div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
