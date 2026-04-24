@@ -17,6 +17,7 @@ const COL_MAP = {
   site_id: ['site id', 'siteid', 'id', 'site_id', 'site number', 'code site'],
   site_name: ['site name', 'sitename', 'nom site', 'site_name', 'name'],
   duration: ['duration', 'durée', 'duree', 'outage duration', 'down time', 'downtime', 'coupure'],
+  last_occurred: ['last occurred on', 'last occurred', 'dernière occurrence', 'last outage', 'date coupure', 'occurred on'],
 };
 
 // ── Utilitaires ──────────────────────────────────────────────
@@ -107,6 +108,7 @@ function parseWorkbook(wb) {
     technology: findCol(headers, 'technology'),
     site_id: findCol(headers, 'site_id'),
     site_name: findCol(headers, 'site_name'),
+    last_occurred: findCol(headers, 'last_occurred'),
     duration: findCol(headers, 'duration'),
   };
 
@@ -118,18 +120,44 @@ function parseWorkbook(wb) {
 
   allData = raw.slice(1).map(row => {
     const get = col => col ? String(row[headers.indexOf(col)] ?? '').trim() : '—';
+
+    // Récupérer la valeur brute de la colonne « Last Occurred On »
+    // et la formater en date lisible (JJ/MM/AAAA HH:MM si possible)
+    const rawOccurred = cols.last_occurred
+      ? row[headers.indexOf(cols.last_occurred)]
+      : null;
+    let dateCoupure = '—';
+    if (rawOccurred !== null && rawOccurred !== undefined && rawOccurred !== '') {
+      // Valeur numérique Excel (numéro de série de date)
+      if (typeof rawOccurred === 'number') {
+        const d = new Date(Math.round((rawOccurred - 25569) * 86400 * 1000));
+        if (!isNaN(d.getTime())) {
+          const day   = String(d.getUTCDate()).padStart(2, '0');
+          const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+          const year  = d.getUTCFullYear();
+          const hh    = String(d.getUTCHours()).padStart(2, '0');
+          const mm    = String(d.getUTCMinutes()).padStart(2, '0');
+          dateCoupure = `${day}/${month}/${year} ${hh}:${mm}`;
+        }
+      } else {
+        // Valeur texte : conserver telle quelle
+        dateCoupure = String(rawOccurred).trim() || '—';
+      }
+    }
+
     return {
       location: get(cols.location),
       technology: get(cols.technology),
       site_id: get(cols.site_id),
       site_name: get(cols.site_name),
+      date_coupure: dateCoupure,
       duration: get(cols.duration),
       _durSec: toSeconds(get(cols.duration)),
       _durMin: Math.floor(toSeconds(get(cols.duration)) / 60), // pour slider
     };
   }).filter(r => {
     // Garder uniquement les lignes ayant au moins un identifiant réel (non vide)
-    const hasId   = r.site_id   && r.site_id   !== '—' && r.site_id.trim()   !== '';
+    const hasId = r.site_id && r.site_id !== '—' && r.site_id.trim() !== '';
     const hasName = r.site_name && r.site_name !== '—' && r.site_name.trim() !== '';
     return hasId || hasName;
   });
@@ -229,6 +257,7 @@ function renderTable() {
       <td>${r.technology}</td>
       <td>${r.site_id}</td>
       <td>${r.site_name}</td>
+      <td class="col-date-coupure">${r.date_coupure}</td>
       <td class="${durClass(r._durSec)}">${fmtSeconds(r._durSec)}</td>
     </tr>
   `).join('');
@@ -295,9 +324,9 @@ function updateRangeFill() {
 
 // ── Export CSV ────────────────────────────────────────────────
 function exportCSV() {
-  const headers = ['Location', 'Technologie', 'Site ID', 'Site Name', 'Duration'];
+  const headers = ['Location', 'Technologie', 'Site ID', 'Site Name', 'Date Coupure', 'Duration'];
   const rows = filtered.map(r =>
-    [r.location, r.technology, r.site_id, r.site_name, r.duration]
+    [r.location, r.technology, r.site_id, r.site_name, r.date_coupure, r.duration]
       .map(v => `"${String(v).replace(/"/g, '""')}"`)
       .join(',')
   );
