@@ -132,11 +132,11 @@ function parseWorkbook(wb) {
       if (typeof rawOccurred === 'number') {
         const d = new Date(Math.round((rawOccurred - 25569) * 86400 * 1000));
         if (!isNaN(d.getTime())) {
-          const day   = String(d.getUTCDate()).padStart(2, '0');
+          const day = String(d.getUTCDate()).padStart(2, '0');
           const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-          const year  = d.getUTCFullYear();
-          const hh    = String(d.getUTCHours()).padStart(2, '0');
-          const mm    = String(d.getUTCMinutes()).padStart(2, '0');
+          const year = d.getUTCFullYear();
+          const hh = String(d.getUTCHours()).padStart(2, '0');
+          const mm = String(d.getUTCMinutes()).padStart(2, '0');
           dateCoupure = `${day}/${month}/${year} ${hh}:${mm}`;
         }
       } else {
