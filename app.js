@@ -57,18 +57,36 @@ function toSeconds(val) {
 }
 
 /**
- * Formate des secondes totales :
- *   < 24h  →  HH:MM:SS          (ex: 03:40:10)
- *   ≥ 24h  →  AJ HH:MM:SS      (ex: 2J 03:40:10)
+ * Formate des secondes totales en HH:MM:SS continu.
+ * Les heures dépassant 24h ne sont PAS converties en jours.
+ * Ex : 90061 s → 25:01:01
  */
 function fmtSeconds(totalSec) {
-  const days = Math.floor(totalSec / 86400);
-  const rem = totalSec % 86400;
-  const h = Math.floor(rem / 3600);
-  const m = Math.floor((rem % 3600) / 60);
-  const sc = rem % 60;
-  const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`;
-  return days > 0 ? `${days}J ${time}` : time;
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const sc = totalSec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`;
+}
+
+/**
+ * Formate une valeur brute Excel de durée en HH:MM:SS continu (sans conversion en jours).
+ * - Nombre décimal Excel (fraction de jour) : 0.1528 → 03:40:10 / 2.0 → 48:00:00
+ * - Chaîne hh:mm ou hh:mm:ss                : conservée telle quelle
+ */
+function formatRawDuration(rawVal) {
+  if (rawVal === null || rawVal === undefined || rawVal === '') return '—';
+
+  // Valeur numérique Excel : fraction de jour (0 < n < 1 ou n >= 1 représente des jours)
+  if (typeof rawVal === 'number') {
+    const totalSec = Math.round(rawVal * 86400);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const sc = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`;
+  }
+
+  // Valeur texte : conserver telle quelle
+  return String(rawVal).trim() || '—';
 }
 
 /** Formate des MINUTES en HH:MM (pour le slider et les filtres texte) */
@@ -145,15 +163,24 @@ function parseWorkbook(wb) {
       }
     }
 
+    // Récupérer la valeur brute de la colonne « Duration »
+    const rawDuration = cols.duration ? row[headers.indexOf(cols.duration)] : null;
+    // Calculer les secondes directement depuis la valeur brute Excel
+    const durSec = (rawDuration !== null && rawDuration !== undefined && rawDuration !== '')
+      ? (typeof rawDuration === 'number'
+          ? Math.round(rawDuration * 86400)          // fraction de jour Excel
+          : toSeconds(String(rawDuration)))           // chaîne texte hh:mm:ss
+      : 0;
+
     return {
       location: get(cols.location),
       technology: get(cols.technology),
       site_id: get(cols.site_id),
       site_name: get(cols.site_name),
       date_coupure: dateCoupure,
-      duration: get(cols.duration),
-      _durSec: toSeconds(get(cols.duration)),
-      _durMin: Math.floor(toSeconds(get(cols.duration)) / 60), // pour slider
+      duration: formatRawDuration(rawDuration),      // affichage original fidèle
+      _durSec: durSec,
+      _durMin: Math.floor(durSec / 60),              // pour slider
     };
   }).filter(r => {
     // Garder uniquement les lignes ayant au moins un identifiant réel (non vide)
