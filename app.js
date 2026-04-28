@@ -258,7 +258,7 @@ function renderTable() {
       <td>${r.site_id}</td>
       <td>${r.site_name}</td>
       <td class="col-date-coupure">${r.date_coupure}</td>
-      <td class="${durClass(r._durSec)}">${fmtSeconds(r._durSec)}</td>
+      <td class="${durClass(r._durSec)}">${r.duration}</td>
     </tr>
   `).join('');
 }
