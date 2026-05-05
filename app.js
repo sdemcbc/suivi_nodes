@@ -457,7 +457,7 @@ async function autoLoad() {
   if (dropTitle) dropTitle.textContent = 'Chargement de suivi_site.xlsx…';
 
   try {
-    const res = await fetch('./suivi_site.xlsx');
+    const res = await fetch('./node_down.xlsx');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const buffer = await res.arrayBuffer();
