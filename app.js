@@ -465,7 +465,7 @@ async function autoLoad() {
 
     // Mettre à jour le badge fichier dans le header
     const badge = document.getElementById('file-badge');
-    badge.textContent = 'suivi_nodes_down';
+    badge.textContent = 'suivi_site_down';
     badge.classList.remove('hidden');
 
     parseWorkbook(wb);
