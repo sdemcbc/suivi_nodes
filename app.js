@@ -199,6 +199,7 @@ function initApp() {
     document.getElementById(id).classList.remove('hidden'));
   document.getElementById('import-section').classList.add('hidden');
 
+
   // Remplir le select Location
   const locations = [...new Set(allData.map(r => r.location).filter(v => v && v !== '—'))].sort();
   const sel = document.getElementById('filter-location');
@@ -381,8 +382,6 @@ function exportCSV() {
 // ── Événements ────────────────────────────────────────────────
 function handleFile(file) {
   if (!file) return;
-  document.getElementById('file-badge').textContent = file.name;
-  document.getElementById('file-badge').classList.remove('hidden');
 
   const reader = new FileReader();
   reader.onload = e => {
@@ -475,11 +474,6 @@ async function autoLoad() {
 
     const buffer = await res.arrayBuffer();
     const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
-
-    // Mettre à jour le badge fichier dans le header
-    const badge = document.getElementById('file-badge');
-    badge.textContent = 'suivi_site_down';
-    badge.classList.remove('hidden');
 
     parseWorkbook(wb);
 
