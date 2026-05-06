@@ -318,7 +318,20 @@ function renderTechKPIs() {
     techMap[tech].count += 1;
   });
 
-  const entries = Object.entries(techMap).sort((a, b) => b[1].seconds - a[1].seconds);
+  // Trier par ordre personnalisé : 2G, 3G, 4G
+  const techOrder = ['2G', '3G', '4G'];
+  const entries = Object.entries(techMap).sort((a, b) => {
+    const indexA = techOrder.indexOf(a[0]);
+    const indexB = techOrder.indexOf(b[0]);
+    // Si aucun n'est dans l'ordre défini
+    if (indexA === -1 && indexB === -1) return 0;
+    // Si a n'est pas dans l'ordre, le mettre après
+    if (indexA === -1) return 1;
+    // Si b n'est pas dans l'ordre, le mettre après
+    if (indexB === -1) return -1;
+    // Sinon, utiliser l'ordre défini
+    return indexA - indexB;
+  });
 
   if (!entries.length) {
     grid.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">Aucune donnée</span>';
