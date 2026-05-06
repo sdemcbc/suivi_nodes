@@ -168,8 +168,8 @@ function parseWorkbook(wb) {
     // Calculer les secondes directement depuis la valeur brute Excel
     const durSec = (rawDuration !== null && rawDuration !== undefined && rawDuration !== '')
       ? (typeof rawDuration === 'number'
-          ? Math.round(rawDuration * 86400)          // fraction de jour Excel
-          : toSeconds(String(rawDuration)))           // chaîne texte hh:mm:ss
+        ? Math.round(rawDuration * 86400)          // fraction de jour Excel
+        : toSeconds(String(rawDuration)))           // chaîne texte hh:mm:ss
       : 0;
 
     return {
@@ -457,7 +457,7 @@ async function autoLoad() {
   if (dropTitle) dropTitle.textContent = 'Chargement de suivi_site.xlsx…';
 
   try {
-    const res = await fetch('./node_down.xlsx');
+    const res = await fetch('./suivi_site.xlsx');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const buffer = await res.arrayBuffer();
