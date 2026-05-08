@@ -202,15 +202,87 @@
 
   <!-- ===================== TAB : RAPPORT VSWR ===================== -->
   <div class="tab-content" id="tab-rapport-vswr">
-    <div class="placeholder-tab">
-      <div class="placeholder-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-        </svg>
+    
+    <!-- IMPORT ZONE VSWR -->
+    <section class="import-section" id="import-section-vswr">
+      <div class="drop-zone" id="drop-zone-vswr">
+        <div class="drop-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+        </div>
+        <p class="drop-title">Glissez votre fichier VSWR ici</p>
+        <p class="drop-sub">ou</p>
+        <label class="btn-upload" for="file-input-vswr">Parcourir le fichier</label>
+        <input type="file" id="file-input-vswr" accept=".xlsx,.xls,.csv" hidden />
+        <p class="drop-hint">Formats acceptés : .xlsx · .xls · .csv</p>
       </div>
-      <h2>Rapport VSWR</h2>
-      <p>Cette section est en cours de développement.</p>
-    </div>
+    </section>
+
+    <!-- KPI CARDS VSWR -->
+    <section class="kpi-section hidden" id="kpi-section-vswr">
+      <div class="kpi-card" id="kpi-vswr-now">
+        <span class="kpi-label">POINT AU</span>
+        <span class="kpi-value kpi-value--small" id="kpi-vswr-now-val">—</span>
+      </div>
+      <div class="kpi-card" id="kpi-vswr-total">
+        <span class="kpi-label">Total Sites</span>
+        <span class="kpi-value" id="kpi-vswr-total-val">0</span>
+      </div>
+      <div class="kpi-card" id="kpi-vswr-high">
+        <span class="kpi-label">VSWR Élevé (>1.5)</span>
+        <span class="kpi-value" id="kpi-vswr-high-val">0</span>
+      </div>
+      <div class="kpi-card" id="kpi-vswr-avg">
+        <span class="kpi-label">VSWR Moyen</span>
+        <span class="kpi-value" id="kpi-vswr-avg-val">0</span>
+      </div>
+    </section>
+
+    <!-- FILTERS VSWR -->
+    <section class="filters-section hidden" id="filters-section-vswr">
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label class="filter-label">Site ID</label>
+          <input type="text" class="filter-input" id="filter-vswr-site-id" placeholder="Rechercher un Site ID…" />
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Status</label>
+          <select class="filter-input" id="filter-vswr-status">
+            <option value="">Tous les status</option>
+            <option value="ok">Normal (≤ 1.5)</option>
+            <option value="critical">Critique (> 1.5)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-reset" id="btn-reset-vswr">Réinitialiser les filtres</button>
+    </section>
+
+    <!-- TABLE VSWR -->
+    <section class="table-section hidden" id="table-section-vswr">
+      <div class="table-header-row">
+        <span class="results-count" id="results-count-vswr">0 résultat(s)</span>
+        <button class="btn-export" id="btn-export-vswr">⬇ Exporter XLSX</button>
+      </div>
+      <div class="table-wrapper">
+        <table id="vswr-table">
+          <thead>
+            <tr>
+              <th>Site ID</th>
+              <th>Site Name</th>
+              <th>Antenna/Sector</th>
+              <th>VSWR Value</th>
+              <th>Status</th>
+              <th>Date Check</th>
+            </tr>
+          </thead>
+          <tbody id="vswr-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
   </div>
 
   <script src="app.js"></script>

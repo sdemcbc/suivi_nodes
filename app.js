@@ -24,6 +24,20 @@ const COL_MAP = {
 
 let reportTimestamp = '—'; // Timestamp global du rapport (Mail Received Time)
 
+// ── État global VSWR ──────────────────────────────────────────
+let vswrAllData = [];
+let vswrFiltered = [];
+let vswrReportTimestamp = '—';
+
+const VSWR_COL_MAP = {
+  site_id: ['site id', 'siteid', 'id', 'site_id', 'site number', 'code site'],
+  site_name: ['site name', 'sitename', 'nom site', 'site_name', 'name'],
+  antenna: ['antenna', 'sector', 'antenne', 'secteur', 'cell', 'cellule', 'ant', 'sect'],
+  vswr_value: ['vswr', 'vswr value', 'valeur vswr', 'vswr_value', 'ratio'],
+  check_date: ['date', 'check date', 'date check', 'date mesure', 'test date'],
+  mail_received: ['mail received time', 'mail received', 'date réception', 'date mail'],
+};
+
 // ── Utilitaires ──────────────────────────────────────────────
 
 /**
@@ -106,8 +120,8 @@ function toMinutes(val) {
 }
 
 /** Cherche le nom de colonne dans les headers selon COL_MAP */
-function findCol(headers, key) {
-  const candidates = COL_MAP[key];
+function findCol(headers, key, map = COL_MAP) {
+  const candidates = map[key] || [];
   return headers.find(h => candidates.includes(h.toLowerCase().trim())) || null;
 }
 
@@ -490,30 +504,180 @@ document.querySelectorAll('#data-table th').forEach(th => {
   });
 });
 
-// ── Auto-chargement : suivi_site.xlsx (même dossier) ───────────
+// ============================================================
+//   LOGIQUE VSWR
+// ============================================================
+
+function parseVSWRWorkbook(wb) {
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (raw.length < 2) return;
+
+  const headers = raw[0].map(h => String(h));
+  const cols = {
+    site_id: findCol(headers, 'site_id', VSWR_COL_MAP),
+    site_name: findCol(headers, 'site_name', VSWR_COL_MAP),
+    antenna: findCol(headers, 'antenna', VSWR_COL_MAP),
+    vswr_value: findCol(headers, 'vswr_value', VSWR_COL_MAP),
+    check_date: findCol(headers, 'check_date', VSWR_COL_MAP),
+    mail_received: findCol(headers, 'mail_received', VSWR_COL_MAP),
+  };
+
+  // Mail Received Time
+  if (cols.mail_received && raw.length > 1) {
+    vswrReportTimestamp = formatExcelDate(raw[1][headers.indexOf(cols.mail_received)]);
+  }
+
+  vswrAllData = raw.slice(1).map(row => {
+    const get = (colName) => {
+      const idx = headers.indexOf(cols[colName]);
+      return idx !== -1 ? row[idx] : '—';
+    };
+
+    const val = parseFloat(get('vswr_value')) || 0;
+    return {
+      site_id: String(get('site_id')),
+      site_name: String(get('site_name')),
+      antenna: String(get('antenna')),
+      vswr: val,
+      check_date: formatExcelDate(get('check_date')),
+    };
+  });
+
+  vswrFiltered = [...vswrAllData];
+  
+  // Afficher les sections
+  document.getElementById('kpi-section-vswr').classList.remove('hidden');
+  document.getElementById('filters-section-vswr').classList.remove('hidden');
+  document.getElementById('table-section-vswr').classList.remove('hidden');
+
+  renderVSWRKPIs();
+  renderVSWRTable();
+}
+
+function renderVSWRKPIs() {
+  document.getElementById('kpi-vswr-now-val').textContent = vswrReportTimestamp;
+  document.getElementById('kpi-vswr-total-val').textContent = new Set(vswrAllData.map(d => d.site_id)).size;
+  
+  const highCount = vswrFiltered.filter(d => d.vswr > 1.5).length;
+  document.getElementById('kpi-vswr-high-val').textContent = highCount;
+  
+  const avg = vswrFiltered.length > 0 
+    ? (vswrFiltered.reduce((s, r) => s + r.vswr, 0) / vswrFiltered.length).toFixed(2)
+    : '—';
+  document.getElementById('kpi-vswr-avg-val').textContent = avg;
+}
+
+function renderVSWRTable() {
+  const tbody = document.getElementById('vswr-table-body');
+  document.getElementById('results-count-vswr').textContent = `${vswrFiltered.length} résultat(s)`;
+  
+  tbody.innerHTML = vswrFiltered.map(r => `
+    <tr>
+      <td>${r.site_id}</td>
+      <td>${r.site_name}</td>
+      <td>${r.antenna}</td>
+      <td style="font-weight:600; color:${r.vswr > 1.5 ? 'var(--error)' : 'var(--success)'}">${r.vswr.toFixed(2)}</td>
+      <td>
+        <span class="status-badge ${r.vswr > 1.5 ? 'status-down' : 'status-up'}">
+          ${r.vswr > 1.5 ? 'CRITIQUE' : 'NORMAL'}
+        </span>
+      </td>
+      <td>${r.check_date}</td>
+    </tr>
+  `).join('');
+}
+
+function applyVSWRFilters() {
+  const sid = document.getElementById('filter-vswr-site-id').value.toLowerCase();
+  const status = document.getElementById('filter-vswr-status').value;
+
+  vswrFiltered = vswrAllData.filter(r => {
+    if (sid && !r.site_id.toLowerCase().includes(sid)) return false;
+    if (status === 'ok' && r.vswr > 1.5) return false;
+    if (status === 'critical' && r.vswr <= 1.5) return false;
+    return true;
+  });
+
+  renderVSWRKPIs();
+  renderVSWRTable();
+}
+
+// Events VSWR
+const vswrInput = document.getElementById('file-input-vswr');
+const vswrDz = document.getElementById('drop-zone-vswr');
+
+function handleVSWRFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+    parseVSWRWorkbook(wb);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+vswrInput.addEventListener('change', (e) => handleVSWRFile(e.target.files[0]));
+
+vswrDz.addEventListener('dragover', e => { e.preventDefault(); vswrDz.classList.add('drag-over'); });
+vswrDz.addEventListener('dragleave', () => vswrDz.classList.remove('drag-over'));
+vswrDz.addEventListener('drop', e => {
+  e.preventDefault();
+  vswrDz.classList.remove('drag-over');
+  handleVSWRFile(e.dataTransfer.files[0]);
+});
+
+document.getElementById('filter-vswr-site-id').addEventListener('input', applyVSWRFilters);
+document.getElementById('filter-vswr-status').addEventListener('change', applyVSWRFilters);
+document.getElementById('btn-reset-vswr').addEventListener('click', () => {
+  document.getElementById('filter-vswr-site-id').value = '';
+  document.getElementById('filter-vswr-status').value = '';
+  applyVSWRFilters();
+});
+
+document.getElementById('btn-export-vswr').addEventListener('click', () => {
+  const headers = ['Site ID', 'Site Name', 'Antenna', 'VSWR', 'Status', 'Date Check'];
+  const data = [headers];
+  vswrFiltered.forEach(r => {
+    data.push([r.site_id, r.site_name, r.antenna, r.vswr, r.vswr > 1.5 ? 'CRITIQUE' : 'NORMAL', r.check_date]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "VSWR_Report");
+  XLSX.writeFile(wb, 'vswr_export.xlsx');
+});
+
+// ── Auto-chargement : fichiers locaux ──────────────────────────
 async function autoLoad() {
-  // Afficher un indicateur de chargement dans la drop-zone
+  // 1. Charger suivi_site.xlsx
   const dropTitle = document.querySelector('.drop-title');
-  const origTitle = dropTitle ? dropTitle.textContent : '';
   if (dropTitle) dropTitle.textContent = 'Chargement de suivi_site.xlsx…';
 
   try {
     const res = await fetch('./suivi_site.xlsx');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (res.ok) {
+      const buffer = await res.arrayBuffer();
+      const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+      parseWorkbook(wb);
+    }
+  } catch (err) { console.info('Auto-load Node Down non dispo'); }
 
-    const buffer = await res.arrayBuffer();
-    const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+  // 2. Charger suivi_vswr.xlsx
+  const dropTitleVswr = document.querySelector('#drop-zone-vswr .drop-title');
+  if (dropTitleVswr) dropTitleVswr.textContent = 'Chargement de suivi_vswr.xlsx…';
 
-    parseWorkbook(wb);
-
-  } catch (err) {
-    // Fallback : restaurer la zone d'import manuelle
-    console.info(
-      'Chargement auto non disponible.\n' +
-      'Ouvrez la page via un serveur local (ex: VS Code Live Server).\n' +
-      'Erreur :', err.message
-    );
-    if (dropTitle) dropTitle.textContent = origTitle;
+  try {
+    const resV = await fetch('./suivi_vswr.xlsx');
+    if (resV.ok) {
+      const bufferV = await resV.arrayBuffer();
+      const wbV = XLSX.read(new Uint8Array(bufferV), { type: 'array' });
+      parseVSWRWorkbook(wbV);
+    } else {
+      if (dropTitleVswr) dropTitleVswr.textContent = 'Glissez votre fichier VSWR ici';
+    }
+  } catch (err) { 
+    console.info('Auto-load VSWR non dispo');
+    if (dropTitleVswr) dropTitleVswr.textContent = 'Glissez votre fichier VSWR ici';
   }
 }
 
