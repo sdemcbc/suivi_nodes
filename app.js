@@ -32,9 +32,9 @@ let vswrReportTimestamp = '—';
 const VSWR_COL_MAP = {
   site_id: ['site id', 'siteid', 'id', 'site_id', 'site number', 'code site'],
   site_name: ['site name', 'sitename', 'nom site', 'site_name', 'name'],
-  antenna: ['antenna', 'sector', 'antenne', 'secteur', 'cell', 'cellule', 'ant', 'sect'],
+  location: ['location', 'loc', 'ville', 'city', 'region', 'site location'],
+  vendor: ['vendor', 'fournisseur', 'équipementier', 'vendor_name'],
   vswr_value: ['vswr', 'vswr value', 'valeur vswr', 'vswr_value', 'ratio'],
-  check_date: ['date', 'check date', 'date check', 'date mesure', 'test date'],
   mail_received: ['mail received time', 'mail received', 'date réception', 'date mail'],
 };
 
@@ -517,9 +517,9 @@ function parseVSWRWorkbook(wb) {
   const cols = {
     site_id: findCol(headers, 'site_id', VSWR_COL_MAP),
     site_name: findCol(headers, 'site_name', VSWR_COL_MAP),
-    antenna: findCol(headers, 'antenna', VSWR_COL_MAP),
+    location: findCol(headers, 'location', VSWR_COL_MAP),
+    vendor: findCol(headers, 'vendor', VSWR_COL_MAP),
     vswr_value: findCol(headers, 'vswr_value', VSWR_COL_MAP),
-    check_date: findCol(headers, 'check_date', VSWR_COL_MAP),
     mail_received: findCol(headers, 'mail_received', VSWR_COL_MAP),
   };
 
@@ -538,9 +538,9 @@ function parseVSWRWorkbook(wb) {
     return {
       site_id: String(get('site_id')),
       site_name: String(get('site_name')),
-      antenna: String(get('antenna')),
+      location: String(get('location')),
+      vendor: String(get('vendor')),
       vswr: val,
-      check_date: formatExcelDate(get('check_date')),
     };
   }).filter(d => d.vswr > 0);
 
@@ -554,6 +554,29 @@ function parseVSWRWorkbook(wb) {
 
   renderVSWRKPIs();
   renderVSWRTable();
+  populateVSWRFilters();
+}
+
+function populateVSWRFilters() {
+  // Location
+  const locs = [...new Set(vswrAllData.map(r => r.location).filter(v => v && v !== '—'))].sort();
+  const selLoc = document.getElementById('filter-vswr-location');
+  selLoc.innerHTML = '<option value="">Toutes les locations</option>';
+  locs.forEach(l => {
+    const o = document.createElement('option');
+    o.value = o.textContent = l;
+    selLoc.appendChild(o);
+  });
+
+  // Vendor
+  const vendors = [...new Set(vswrAllData.map(r => r.vendor).filter(v => v && v !== '—'))].sort();
+  const selVendor = document.getElementById('filter-vswr-vendor');
+  selVendor.innerHTML = '<option value="">Tous les vendors</option>';
+  vendors.forEach(v => {
+    const o = document.createElement('option');
+    o.value = o.textContent = v;
+    selVendor.appendChild(o);
+  });
 }
 
 function renderVSWRKPIs() {
@@ -577,24 +600,28 @@ function renderVSWRTable() {
     <tr>
       <td>${r.site_id}</td>
       <td>${r.site_name}</td>
-      <td>${r.antenna}</td>
+      <td>${r.location}</td>
       <td style="font-weight:600; color:${r.vswr > 1.5 ? 'var(--error)' : 'var(--success)'}">${r.vswr.toFixed(2)}</td>
       <td>
         <span class="status-badge ${r.vswr > 1.5 ? 'status-down' : 'status-up'}">
           ${r.vswr > 1.5 ? 'CRITIQUE' : 'NORMAL'}
         </span>
       </td>
-      <td>${r.check_date}</td>
+      <td>${r.vendor}</td>
     </tr>
   `).join('');
 }
 
 function applyVSWRFilters() {
   const sid = document.getElementById('filter-vswr-site-id').value.toLowerCase();
+  const loc = document.getElementById('filter-vswr-location').value.toLowerCase();
+  const vendor = document.getElementById('filter-vswr-vendor').value.toLowerCase();
   const status = document.getElementById('filter-vswr-status').value;
 
   vswrFiltered = vswrAllData.filter(r => {
     if (sid && !r.site_id.toLowerCase().includes(sid)) return false;
+    if (loc && r.location.toLowerCase() !== loc) return false;
+    if (vendor && r.vendor.toLowerCase() !== vendor) return false;
     if (status === 'ok' && r.vswr > 1.5) return false;
     if (status === 'critical' && r.vswr <= 1.5) return false;
     return true;
@@ -629,18 +656,22 @@ vswrDz.addEventListener('drop', e => {
 });
 
 document.getElementById('filter-vswr-site-id').addEventListener('input', applyVSWRFilters);
+document.getElementById('filter-vswr-location').addEventListener('change', applyVSWRFilters);
+document.getElementById('filter-vswr-vendor').addEventListener('change', applyVSWRFilters);
 document.getElementById('filter-vswr-status').addEventListener('change', applyVSWRFilters);
 document.getElementById('btn-reset-vswr').addEventListener('click', () => {
   document.getElementById('filter-vswr-site-id').value = '';
+  document.getElementById('filter-vswr-location').value = '';
+  document.getElementById('filter-vswr-vendor').value = '';
   document.getElementById('filter-vswr-status').value = '';
   applyVSWRFilters();
 });
 
 document.getElementById('btn-export-vswr').addEventListener('click', () => {
-  const headers = ['Site ID', 'Site Name', 'Antenna', 'VSWR', 'Status', 'Date Check'];
+  const headers = ['Site ID', 'Site Name', 'Location', 'VSWR', 'Status', 'Vendor'];
   const data = [headers];
   vswrFiltered.forEach(r => {
-    data.push([r.site_id, r.site_name, r.antenna, r.vswr, r.vswr > 1.5 ? 'CRITIQUE' : 'NORMAL', r.check_date]);
+    data.push([r.site_id, r.site_name, r.location, r.vswr, r.vswr > 1.5 ? 'CRITIQUE' : 'NORMAL', r.vendor]);
   });
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();

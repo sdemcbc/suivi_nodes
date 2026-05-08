@@ -249,6 +249,18 @@
           <input type="text" class="filter-input" id="filter-vswr-site-id" placeholder="Rechercher un Site ID…" />
         </div>
         <div class="filter-group">
+          <label class="filter-label">Location</label>
+          <select class="filter-input" id="filter-vswr-location">
+            <option value="">Toutes les locations</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Vendor</label>
+          <select class="filter-input" id="filter-vswr-vendor">
+            <option value="">Tous les vendors</option>
+          </select>
+        </div>
+        <div class="filter-group">
           <label class="filter-label">Status</label>
           <select class="filter-input" id="filter-vswr-status">
             <option value="">Tous les status</option>
@@ -272,10 +284,10 @@
             <tr>
               <th>Site ID</th>
               <th>Site Name</th>
-              <th>Antenna/Sector</th>
+              <th>Location</th>
               <th>VSWR Value</th>
               <th>Status</th>
-              <th>Date Check</th>
+              <th>Vendor</th>
             </tr>
           </thead>
           <tbody id="vswr-table-body"></tbody>
