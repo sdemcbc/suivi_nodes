@@ -542,7 +542,7 @@ function parseVSWRWorkbook(wb) {
       vswr: val,
       check_date: formatExcelDate(get('check_date')),
     };
-  });
+  }).filter(d => d.vswr > 0);
 
   vswrFiltered = [...vswrAllData];
   
