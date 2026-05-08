@@ -546,7 +546,8 @@ function parseVSWRWorkbook(wb) {
 
   vswrFiltered = [...vswrAllData];
   
-  // Afficher les sections
+  // Afficher les sections et masquer l'import
+  document.getElementById('import-section-vswr').classList.add('hidden');
   document.getElementById('kpi-section-vswr').classList.remove('hidden');
   document.getElementById('filters-section-vswr').classList.remove('hidden');
   document.getElementById('table-section-vswr').classList.remove('hidden');
