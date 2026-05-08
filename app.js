@@ -293,6 +293,11 @@ function renderTable() {
 
 // ── Rendu KPI ─────────────────────────────────────────────────
 function renderKPIs() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR');
+  const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('kpi-now-val').textContent = `${dateStr} ${timeStr}`;
+
   document.getElementById('kpi-total-val').textContent = allData.length;
   document.getElementById('kpi-filtered-val').textContent = filtered.length;
 
