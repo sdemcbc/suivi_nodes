@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nodes Down Dashboard</title>
   <meta name="description"
-    content="Dashboard de suivi des coupures site télécom — import Excel, filtres, KPI et export CSV." />
+    content="Dashboard de suivi des coupures site télécom — import Excel, filtres, KPI et export XLSX." />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.mini.min.js"></script>
 </head>
@@ -101,10 +101,7 @@
         <span class="kpi-label">Nodes filtrés</span>
         <span class="kpi-value" id="kpi-filtered-val">0</span>
       </div>
-      <div class="kpi-card" id="kpi-duration">
-        <span class="kpi-label">Durée totale (filtrée)</span>
-        <span class="kpi-value" id="kpi-duration-val">—</span>
-      </div>
+
       <div class="kpi-card" id="kpi-locations">
         <span class="kpi-label">Locations uniques</span>
         <span class="kpi-value" id="kpi-locations-val">0</span>
@@ -135,6 +132,12 @@
           <input type="text" class="filter-input" id="filter-site-name" placeholder="Rechercher un Site Name…" />
         </div>
         <div class="filter-group">
+          <label class="filter-label">Power Type</label>
+          <select class="filter-input" id="filter-power-type">
+            <option value="">Tous les types d'énergie</option>
+          </select>
+        </div>
+        <div class="filter-group">
           <label class="filter-label">Duration min <span class="filter-hint">(hh:mm)</span></label>
           <input type="text" class="filter-input" id="filter-dur-min" placeholder="00:00" />
         </div>
@@ -158,7 +161,7 @@
     <section class="table-section hidden" id="table-section">
       <div class="table-header-row">
         <span class="results-count" id="results-count">0 résultat(s)</span>
-        <button class="btn-export" id="btn-export">⬇ Exporter CSV</button>
+        <button class="btn-export" id="btn-export">⬇ Exporter XLSX</button>
       </div>
       <div class="table-wrapper">
         <table id="data-table">
@@ -168,6 +171,7 @@
               <th data-col="technology">Technologie <span class="sort-icon">↕</span></th>
               <th data-col="site_id">Site ID <span class="sort-icon">↕</span></th>
               <th data-col="site_name">Site Name <span class="sort-icon">↕</span></th>
+              <th data-col="power_type">Power Type <span class="sort-icon">↕</span></th>
               <th data-col="date_coupure">Date Coupure <span class="sort-icon">↕</span></th>
               <th data-col="duration">Duration <span class="sort-icon">↕</span></th>
             </tr>

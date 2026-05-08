@@ -303,7 +303,7 @@ body {
 /* ---------- KPI ---------- */
 .kpi-section {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   padding: 28px 32px 0;
 }

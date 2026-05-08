@@ -1,6 +1,6 @@
 /* ============================================================
    SITE DOWN DASHBOARD — app.js
-   Logique : import Excel, filtres, tri, KPI, export CSV
+   Logique : import Excel, filtres, tri, KPI, export XLSX
    ============================================================ */
 
 // ── État global ──────────────────────────────────────────────
@@ -18,6 +18,7 @@ const COL_MAP = {
   site_name: ['site name', 'sitename', 'nom site', 'site_name', 'name'],
   duration: ['duration', 'durée', 'duree', 'outage duration', 'down time', 'downtime', 'coupure'],
   last_occurred: ['last occurred on', 'last occurred', 'dernière occurrence', 'last outage', 'date coupure', 'occurred on'],
+  power_type: ['power type', 'powertype', 'power', 'énergie', 'energie', 'type énergie', 'power_type'],
 };
 
 // ── Utilitaires ──────────────────────────────────────────────
@@ -128,6 +129,7 @@ function parseWorkbook(wb) {
     site_name: findCol(headers, 'site_name'),
     last_occurred: findCol(headers, 'last_occurred'),
     duration: findCol(headers, 'duration'),
+    power_type: findCol(headers, 'power_type'),
   };
 
   // Rapport des colonnes non trouvées
@@ -179,6 +181,7 @@ function parseWorkbook(wb) {
       site_name: get(cols.site_name),
       date_coupure: dateCoupure,
       duration: formatRawDuration(rawDuration),      // affichage original fidèle
+      power_type: get(cols.power_type),
       _durSec: durSec,
       _durMin: Math.floor(durSec / 60),              // pour slider
     };
@@ -210,6 +213,16 @@ function initApp() {
     sel.appendChild(o);
   });
 
+  // Remplir le select Power Type
+  const powerTypes = [...new Set(allData.map(r => r.power_type).filter(v => v && v !== '—'))].sort();
+  const selPower = document.getElementById('filter-power-type');
+  selPower.innerHTML = '<option value="">Tous les types d\'énergie</option>';
+  powerTypes.forEach(p => {
+    const o = document.createElement('option');
+    o.value = o.textContent = p;
+    selPower.appendChild(o);
+  });
+
   // Configurer le slider (en minutes)
   maxSeconds = Math.max(...allData.map(r => r._durSec), 0);
   const maxMin = Math.ceil(maxSeconds / 60);
@@ -228,6 +241,7 @@ function applyFilters() {
   const loc = document.getElementById('filter-location').value.toLowerCase();
   const sid = document.getElementById('filter-site-id').value.toLowerCase();
   const sname = document.getElementById('filter-site-name').value.toLowerCase();
+  const ptype = document.getElementById('filter-power-type').value.toLowerCase();
   const durMinTxt = document.getElementById('filter-dur-min').value.trim();
   const durMaxTxt = document.getElementById('filter-dur-max').value.trim();
   const rMin = parseInt(document.getElementById('range-min').value, 10);
@@ -241,6 +255,7 @@ function applyFilters() {
     if (loc && !r.location.toLowerCase().includes(loc)) return false;
     if (sid && !r.site_id.toLowerCase().includes(sid)) return false;
     if (sname && !r.site_name.toLowerCase().includes(sname)) return false;
+    if (ptype && !r.power_type.toLowerCase().includes(ptype)) return false;
     if (r._durMin < durMinM || r._durMin > durMaxM) return false;
     return true;
   });
@@ -285,6 +300,7 @@ function renderTable() {
       <td>${r.technology}</td>
       <td>${r.site_id}</td>
       <td>${r.site_name}</td>
+      <td>${r.power_type}</td>
       <td class="col-date-coupure">${r.date_coupure}</td>
       <td class="${durClass(r._durSec)}">${r.duration}</td>
     </tr>
@@ -301,8 +317,7 @@ function renderKPIs() {
   document.getElementById('kpi-total-val').textContent = allData.length;
   document.getElementById('kpi-filtered-val').textContent = filtered.length;
 
-  const totalSec = filtered.reduce((s, r) => s + r._durSec, 0);
-  document.getElementById('kpi-duration-val').textContent = fmtSeconds(totalSec);
+
 
   const locs = new Set(filtered.map(r => r.location).filter(v => v && v !== '—'));
   document.getElementById('kpi-locations-val').textContent = locs.size;
@@ -368,20 +383,23 @@ function updateRangeFill() {
   label.textContent = fmtMinutes(lo) + ' — ' + fmtMinutes(hi);
 }
 
-// ── Export CSV ────────────────────────────────────────────────
-function exportCSV() {
-  const headers = ['Location', 'Technologie', 'Site ID', 'Site Name', 'Date Coupure', 'Duration'];
-  const rows = filtered.map(r =>
-    [r.location, r.technology, r.site_id, r.site_name, r.date_coupure, r.duration]
-      .map(v => `"${String(v).replace(/"/g, '""')}"`)
-      .join(',')
-  );
-  const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'site_down_export.csv';
-  a.click(); URL.revokeObjectURL(url);
+// ── Export XLSX ────────────────────────────────────────────────
+function exportXLSX() {
+  const headers = ['Location', 'Technologie', 'Site ID', 'Site Name', 'Power Type', 'Date Coupure', 'Duration'];
+  
+  // Préparer les données pour XLSX (tableau de tableaux)
+  const data = [headers];
+  filtered.forEach(r => {
+    data.push([r.location, r.technology, r.site_id, r.site_name, r.power_type, r.date_coupure, r.duration]);
+  });
+
+  // Créer la feuille et le classeur
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Nodes_Down");
+  
+  // Télécharger le fichier
+  XLSX.writeFile(wb, 'site_down_export.xlsx');
 }
 
 // ── Événements ────────────────────────────────────────────────
@@ -411,7 +429,7 @@ dz.addEventListener('drop', e => {
 });
 
 // Filtres texte
-['filter-location', 'filter-site-id', 'filter-site-name', 'filter-dur-min', 'filter-dur-max']
+['filter-location', 'filter-site-id', 'filter-site-name', 'filter-power-type', 'filter-dur-min', 'filter-dur-max']
   .forEach(id => document.getElementById(id).addEventListener('input', applyFilters));
 
 // Sliders durée
@@ -444,6 +462,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   document.getElementById('filter-location').value = '';
   document.getElementById('filter-site-id').value = '';
   document.getElementById('filter-site-name').value = '';
+  document.getElementById('filter-power-type').value = '';
   document.getElementById('filter-dur-min').value = '';
   document.getElementById('filter-dur-max').value = '';
   document.getElementById('range-min').value = 0;
@@ -452,7 +471,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
 });
 
 // Export
-document.getElementById('btn-export').addEventListener('click', exportCSV);
+document.getElementById('btn-export').addEventListener('click', exportXLSX);
 
 // Tri colonnes
 document.querySelectorAll('#data-table th').forEach(th => {
