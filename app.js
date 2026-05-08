@@ -19,7 +19,10 @@ const COL_MAP = {
   duration: ['duration', 'durée', 'duree', 'outage duration', 'down time', 'downtime', 'coupure'],
   last_occurred: ['last occurred on', 'last occurred', 'dernière occurrence', 'last outage', 'date coupure', 'occurred on'],
   power_type: ['power type', 'powertype', 'power', 'énergie', 'energie', 'type énergie', 'power_type'],
+  mail_received: ['mail received time', 'mail received', 'date réception', 'date mail', 'mail received time'],
 };
+
+let reportTimestamp = '—'; // Timestamp global du rapport (Mail Received Time)
 
 // ── Utilitaires ──────────────────────────────────────────────
 
@@ -108,6 +111,22 @@ function findCol(headers, key) {
   return headers.find(h => candidates.includes(h.toLowerCase().trim())) || null;
 }
 
+function formatExcelDate(rawVal) {
+  if (rawVal === null || rawVal === undefined || rawVal === '') return '—';
+  if (typeof rawVal === 'number') {
+    const d = new Date(Math.round((rawVal - 25569) * 86400 * 1000));
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const year = d.getUTCFullYear();
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const mm = String(d.getUTCMinutes()).padStart(2, '0');
+      return `${day}/${month}/${year} ${hh}:${mm}`;
+    }
+  }
+  return String(rawVal).trim() || '—';
+}
+
 /** Classe CSS selon la durée (en secondes) */
 function durClass(sec) {
   if (sec < 3600) return 'dur-low';    // < 1h
@@ -130,7 +149,13 @@ function parseWorkbook(wb) {
     last_occurred: findCol(headers, 'last_occurred'),
     duration: findCol(headers, 'duration'),
     power_type: findCol(headers, 'power_type'),
+    mail_received: findCol(headers, 'mail_received'),
   };
+
+  // Extraire le Mail Received Time (on prend la 1ère valeur trouvée dans les données)
+  if (cols.mail_received && raw.length > 1) {
+    reportTimestamp = formatExcelDate(raw[1][headers.indexOf(cols.mail_received)]);
+  }
 
   // Rapport des colonnes non trouvées
   const missing = Object.entries(cols).filter(([, v]) => !v).map(([k]) => k);
@@ -146,24 +171,7 @@ function parseWorkbook(wb) {
     const rawOccurred = cols.last_occurred
       ? row[headers.indexOf(cols.last_occurred)]
       : null;
-    let dateCoupure = '—';
-    if (rawOccurred !== null && rawOccurred !== undefined && rawOccurred !== '') {
-      // Valeur numérique Excel (numéro de série de date)
-      if (typeof rawOccurred === 'number') {
-        const d = new Date(Math.round((rawOccurred - 25569) * 86400 * 1000));
-        if (!isNaN(d.getTime())) {
-          const day = String(d.getUTCDate()).padStart(2, '0');
-          const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-          const year = d.getUTCFullYear();
-          const hh = String(d.getUTCHours()).padStart(2, '0');
-          const mm = String(d.getUTCMinutes()).padStart(2, '0');
-          dateCoupure = `${day}/${month}/${year} ${hh}:${mm}`;
-        }
-      } else {
-        // Valeur texte : conserver telle quelle
-        dateCoupure = String(rawOccurred).trim() || '—';
-      }
-    }
+    let dateCoupure = formatExcelDate(rawOccurred);
 
     // Récupérer la valeur brute de la colonne « Duration »
     const rawDuration = cols.duration ? row[headers.indexOf(cols.duration)] : null;
@@ -309,10 +317,7 @@ function renderTable() {
 
 // ── Rendu KPI ─────────────────────────────────────────────────
 function renderKPIs() {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('fr-FR');
-  const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  document.getElementById('kpi-now-val').textContent = `${dateStr} ${timeStr}`;
+  document.getElementById('kpi-now-val').textContent = reportTimestamp;
 
   document.getElementById('kpi-total-val').textContent = allData.length;
   document.getElementById('kpi-filtered-val').textContent = filtered.length;
