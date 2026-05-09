@@ -28,6 +28,8 @@ let reportTimestamp = '—'; // Timestamp global du rapport (Mail Received Time)
 let vswrAllData = [];
 let vswrFiltered = [];
 let vswrReportTimestamp = '—';
+let vswrSortCol = '';
+let vswrSortDir = 'asc';
 
 const VSWR_COL_MAP = {
   site_id: ['site id', 'siteid', 'id', 'site_id', 'site number', 'code site'],
@@ -553,8 +555,30 @@ function parseVSWRWorkbook(wb) {
   document.getElementById('table-section-vswr').classList.remove('hidden');
 
   renderVSWRKPIs();
+  sortVSWRData();
   renderVSWRTable();
   populateVSWRFilters();
+}
+
+function sortVSWRData() {
+  if (!vswrSortCol) return;
+  vswrFiltered.sort((a, b) => {
+    let vA = a[vswrSortCol];
+    let vB = b[vswrSortCol];
+
+    if (vswrSortCol === 'status') {
+      vA = a.vswr > 1.5 ? 1 : 0;
+      vB = b.vswr > 1.5 ? 1 : 0;
+    }
+    if (vswrSortCol === 'vswr_value') {
+      vA = a.vswr;
+      vB = b.vswr;
+    }
+
+    if (vA < vB) return vswrSortDir === 'asc' ? -1 : 1;
+    if (vA > vB) return vswrSortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
 }
 
 function populateVSWRFilters() {
@@ -628,6 +652,7 @@ function applyVSWRFilters() {
   });
 
   renderVSWRKPIs();
+  sortVSWRData();
   renderVSWRTable();
 }
 
@@ -659,6 +684,23 @@ document.getElementById('filter-vswr-site-id').addEventListener('input', applyVS
 document.getElementById('filter-vswr-location').addEventListener('change', applyVSWRFilters);
 document.getElementById('filter-vswr-vendor').addEventListener('change', applyVSWRFilters);
 document.getElementById('filter-vswr-status').addEventListener('change', applyVSWRFilters);
+
+// Tri colonnes VSWR
+document.querySelectorAll('#vswr-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (!col) return;
+    if (vswrSortCol === col) vswrSortDir = vswrSortDir === 'asc' ? 'desc' : 'asc';
+    else { vswrSortCol = col; vswrSortDir = 'asc'; }
+    
+    document.querySelectorAll('#vswr-table th').forEach(t => t.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add(vswrSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    
+    sortVSWRData();
+    renderVSWRTable();
+  });
+});
+
 document.getElementById('btn-reset-vswr').addEventListener('click', () => {
   document.getElementById('filter-vswr-site-id').value = '';
   document.getElementById('filter-vswr-location').value = '';

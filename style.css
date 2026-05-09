@@ -645,12 +645,12 @@ select.filter-input option {
   color: var(--accent);
 }
 
-#data-table th.sort-asc .sort-icon::after {
+th.sort-asc .sort-icon::after {
   content: ' ↑';
   color: var(--accent);
 }
 
-#data-table th.sort-desc .sort-icon::after {
+th.sort-desc .sort-icon::after {
   content: ' ↓';
   color: var(--accent);
 }
