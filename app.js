@@ -279,7 +279,7 @@ function applyFilters() {
     if (loc && !r.location.toLowerCase().includes(loc)) return false;
     if (sid && !r.site_id.toLowerCase().includes(sid)) return false;
     if (sname && !r.site_name.toLowerCase().includes(sname)) return false;
-    if (ptype && !r.power_type.toLowerCase().includes(ptype)) return false;
+    if (ptype && r.power_type.toLowerCase() !== ptype) return false;
     if (r._durMin < durMinM || r._durMin > durMaxM) return false;
     return true;
   });
