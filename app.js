@@ -567,8 +567,8 @@ function sortVSWRData() {
     let vB = b[vswrSortCol];
 
     if (vswrSortCol === 'status') {
-      vA = a.vswr > 1.50 ? 1 : 0;
-      vB = b.vswr > 1.50 ? 1 : 0;
+      vA = a.vswr > 1.40 ? 1 : 0;
+      vB = b.vswr > 1.40 ? 1 : 0;
     }
     if (vswrSortCol === 'vswr_value') {
       vA = a.vswr;
@@ -607,7 +607,7 @@ function renderVSWRKPIs() {
   document.getElementById('kpi-vswr-now-val').textContent = vswrReportTimestamp;
   document.getElementById('kpi-vswr-total-val').textContent = new Set(vswrAllData.map(d => d.site_id)).size;
 
-  const highCount = vswrFiltered.filter(d => d.vswr > 1.50).length;
+  const highCount = vswrFiltered.filter(d => d.vswr > 1.40).length;
   document.getElementById('kpi-vswr-high-val').textContent = highCount;
 
   const avg = vswrFiltered.length > 0
@@ -625,10 +625,10 @@ function renderVSWRTable() {
       <td>${r.site_id}</td>
       <td>${r.site_name}</td>
       <td>${r.location}</td>
-      <td style="font-weight:600; color:${r.vswr > 1.50 ? 'var(--error)' : 'var(--success)'}">${r.vswr.toFixed(2)}</td>
+      <td style="font-weight:600; color:${r.vswr > 1.40 ? 'var(--error)' : 'var(--success)'}">${r.vswr.toFixed(2)}</td>
       <td>
-        <span class="status-badge ${r.vswr > 1.50 ? 'status-down' : 'status-up'}">
-          ${r.vswr > 1.50 ? 'CRITIQUE' : 'NORMAL'}
+        <span class="status-badge ${r.vswr > 1.40 ? 'status-down' : 'status-up'}">
+          ${r.vswr > 1.40 ? 'CRITIQUE' : 'NORMAL'}
         </span>
       </td>
       <td>${r.vendor}</td>
@@ -646,8 +646,8 @@ function applyVSWRFilters() {
     if (sid && !r.site_id.toLowerCase().includes(sid)) return false;
     if (loc && r.location.toLowerCase() !== loc) return false;
     if (vendor && r.vendor.toLowerCase() !== vendor) return false;
-    if (status === 'ok' && r.vswr > 1.50) return false;
-    if (status === 'critical' && r.vswr < 1.50) return false;
+    if (status === 'ok' && r.vswr > 1.40) return false;
+    if (status === 'critical' && r.vswr < 1.40) return false;
     return true;
   });
 
@@ -713,7 +713,7 @@ document.getElementById('btn-export-vswr').addEventListener('click', () => {
   const headers = ['Site ID', 'Site Name', 'Location', 'VSWR', 'Status', 'Vendor'];
   const data = [headers];
   vswrFiltered.forEach(r => {
-    data.push([r.site_id, r.site_name, r.location, r.vswr, r.vswr > 1.50 ? 'CRITIQUE' : 'NORMAL', r.vendor]);
+    data.push([r.site_id, r.site_name, r.location, r.vswr, r.vswr > 1.40 ? 'CRITIQUE' : 'NORMAL', r.vendor]);
   });
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
