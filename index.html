@@ -93,6 +93,18 @@
         <span class="kpi-label">POINT AU</span>
         <span class="kpi-value kpi-value--small" id="kpi-now-val">—</span>
       </div>
+
+      <div class="kpi-card" id="kpi-total-sites">
+        <span class="kpi-label">Total sites</span>
+        <span class="kpi-value" id="kpi-total-sites-val">—</span>
+      </div>
+
+      <div class="kpi-card" id="kpi-total-sites-filtered">
+        <span class="kpi-label">Sites filtrés</span>
+        <span class="kpi-value" id="kpi-total-sites-filtered-val">—</span>
+      </div>
+
+
       <div class="kpi-card" id="kpi-total">
         <span class="kpi-label">Total Nodes</span>
         <span class="kpi-value" id="kpi-total-val">0</span>
@@ -154,7 +166,15 @@
           </div>
         </div>
       </div>
-      <button class="btn-reset" id="btn-reset">Réinitialiser les filtres</button>
+      </div>
+      <div class="filters-bottom-row">
+        <label class="toggle-label" for="filter-eligible-sites">
+          <input type="checkbox" id="filter-eligible-sites" class="toggle-checkbox" />
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">Afficher uniquement les sites comptabilisés</span>
+        </label>
+        <button class="btn-reset" id="btn-reset">Réinitialiser les filtres</button>
+      </div>
     </section>
 
     <!-- TABLE -->
