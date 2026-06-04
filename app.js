@@ -270,14 +270,10 @@ function applyFilters() {
   const durMaxTxt = document.getElementById('filter-dur-max').value.trim();
   const rMin = parseInt(document.getElementById('range-min').value, 10);
   const rMax = parseInt(document.getElementById('range-max').value, 10);
-  const onlyEligible = document.getElementById('filter-eligible-sites').checked;
 
   // Durée depuis champs texte (priorité sur slider si remplis)
   const durMinM = durMinTxt ? toMinutes(durMinTxt) : rMin;
   const durMaxM = durMaxTxt ? toMinutes(durMaxTxt) : rMax;
-
-  // Précalculer les site_ids éligibles (depuis toutes les données) si le filtre est actif
-  const eligibleIds = onlyEligible ? getEligibleSiteIds(allData) : null;
 
   filtered = allData.filter(r => {
     if (loc && !r.location.toLowerCase().includes(loc)) return false;
@@ -285,8 +281,6 @@ function applyFilters() {
     if (sname && !r.site_name.toLowerCase().includes(sname)) return false;
     if (ptype && r.power_type.toLowerCase() !== ptype) return false;
     if (r._durMin < durMinM || r._durMin > durMaxM) return false;
-    // Filtre sites comptabilisés : garder uniquement les lignes dont le site_id est éligible
-    if (eligibleIds && !eligibleIds.has(r.site_id)) return false;
     return true;
   });
 
@@ -338,87 +332,13 @@ function renderTable() {
 }
 
 // ── Rendu KPI ─────────────────────────────────────────────────
-
-/**
- * Compte les sites uniques éligibles selon les 4 catégories de technologie.
- *
- * Catégorie 1 : site ayant 2G et 3G  (pas forcément 4G)
- * Catégorie 2 : site ayant 2G, 3G et 4G
- * Catégorie 3 : site ayant 2G, 4G et 3G  (= même que cat.2, ordre différent)
- * Catégorie 4 : site ayant à la fois 2G, 3G et 4G → compté une fois
- *
- * Règle finale : un site est compté s'il possède au moins 2G ET 3G parmi ses lignes.
- * Quelle que soit la catégorie, chaque site_id n'est compté qu'une seule fois.
- */
-function countEligibleSites(dataset) {
-  // Regrouper les technologies par site_id
-  const sitesTechMap = {};
-  dataset.forEach(r => {
-    const id = r.site_id;
-    if (!id || id === '—' || id.trim() === '') return;
-    if (!sitesTechMap[id]) sitesTechMap[id] = new Set();
-    const tech = (r.technology || '').trim().toUpperCase();
-    if (tech) sitesTechMap[id].add(tech);
-  });
-
-  // Un site est éligible s'il appartient à au moins une des catégories :
-  //   Cat 1 : a 2G ET 3G
-  //   Cat 2/3 : a 2G ET 3G ET 4G (dans n'importe quel ordre)
-  //   Cat 4 : a 2G ET 3G ET 4G (même règle que cat 2/3)
-  // → En pratique : site éligible si techSet contient '2G' ET '3G'
-  //   (la présence de 4G ne change pas l'éligibilité, cat 4 est incluse)
-  let count = 0;
-  for (const techSet of Object.values(sitesTechMap)) {
-    const has2G = techSet.has('2G');
-    const has3G = techSet.has('3G');
-    const has4G = techSet.has('4G');
-
-    // Catégorie 1 : 2G + 3G (avec ou sans 4G)
-    const cat1 = has2G && has3G;
-    // Catégorie 2 : 2G + 3G + 4G
-    const cat2 = has2G && has3G && has4G;
-    // Catégorie 3 : 2G + 4G + 3G (identique à cat2)
-    const cat3 = has2G && has4G && has3G;
-    // Catégorie 4 : 2G ET 3G ET 4G simultanément (identique à cat2/3)
-    const cat4 = has2G && has3G && has4G;
-
-    if (cat1 || cat2 || cat3 || cat4) count++;
-  }
-  return count;
-}
-
-/**
- * Retourne un Set des site_id éligibles (appartenant à au moins une catégorie)
- * à partir d'un dataset donné.
- */
-function getEligibleSiteIds(dataset) {
-  const sitesTechMap = {};
-  dataset.forEach(r => {
-    const id = r.site_id;
-    if (!id || id === '—' || id.trim() === '') return;
-    if (!sitesTechMap[id]) sitesTechMap[id] = new Set();
-    const tech = (r.technology || '').trim().toUpperCase();
-    if (tech) sitesTechMap[id].add(tech);
-  });
-
-  const eligible = new Set();
-  for (const [id, techSet] of Object.entries(sitesTechMap)) {
-    if (techSet.has('2G') && techSet.has('3G')) eligible.add(id);
-  }
-  return eligible;
-}
-
 function renderKPIs() {
   document.getElementById('kpi-now-val').textContent = reportTimestamp;
 
-  // Total sites (toutes données) — selon les catégories technologie
-  document.getElementById('kpi-total-sites-val').textContent = countEligibleSites(allData);
-
-  // Sites filtrés — même logique sur les données filtrées
-  document.getElementById('kpi-total-sites-filtered-val').textContent = countEligibleSites(filtered);
-
   document.getElementById('kpi-total-val').textContent = allData.length;
   document.getElementById('kpi-filtered-val').textContent = filtered.length;
+
+
 
   const locs = new Set(filtered.map(r => r.location).filter(v => v && v !== '—'));
   document.getElementById('kpi-locations-val').textContent = locs.size;
@@ -533,9 +453,6 @@ dz.addEventListener('drop', e => {
 ['filter-location', 'filter-site-id', 'filter-site-name', 'filter-power-type', 'filter-dur-min', 'filter-dur-max']
   .forEach(id => document.getElementById(id).addEventListener('input', applyFilters));
 
-// Toggle : afficher uniquement les sites comptabilisés
-document.getElementById('filter-eligible-sites').addEventListener('change', applyFilters);
-
 // Sliders durée
 document.getElementById('range-min').addEventListener('input', function () {
   if (parseInt(this.value) > parseInt(document.getElementById('range-max').value))
@@ -567,7 +484,6 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   document.getElementById('filter-site-id').value = '';
   document.getElementById('filter-site-name').value = '';
   document.getElementById('filter-power-type').value = '';
-  document.getElementById('filter-eligible-sites').checked = false;
   document.getElementById('filter-dur-min').value = '';
   document.getElementById('filter-dur-max').value = '';
   document.getElementById('range-min').value = 0;
